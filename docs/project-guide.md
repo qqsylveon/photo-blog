@@ -8,7 +8,7 @@
 
 当前版本可在本地完整运行：账号、照片、分类、文案、动态与浏览量均保存到 SQLite 和本地磁盘。**阿里云 OSS/CDN、原图下载、多用户体系尚未接入**，不需要云服务密钥即可开始使用。
 
-本说明对应当前开发分支 `feat/public-site`。
+本说明以 `main` 分支为准，功能开发保留在独立分支中。
 
 ## 目录
 
@@ -98,7 +98,7 @@ flowchart LR
 ### 1. 获取项目
 
 ```powershell
-git clone --branch feat/public-site https://github.com/qqsylveon/photo-blog.git
+git clone https://github.com/qqsylveon/photo-blog.git
 cd photo-blog
 npm ci
 ```
