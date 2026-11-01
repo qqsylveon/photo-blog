@@ -98,7 +98,7 @@ flowchart LR
 ### 1. 获取项目
 
 ```powershell
-git clone --branch feat/public-site https://github.com/Serena-Fennekin/photo-blog.git
+git clone --branch feat/public-site https://github.com/qqsylveon/photo-blog.git
 cd photo-blog
 npm ci
 ```
