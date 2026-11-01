@@ -1,10 +1,3 @@
-import {pondSwimmers} from './pond-swimmers'
-/** Use the same separated, full-height route as the rest of the pond. */
-export function shrimpPose(time:number,index:number,width:number,height:number) {
-  const poses=pondSwimmers(time,width,height).filter(pose=>pose.kind==='shrimp'),pose=poses[index%poses.length]!
-  return {x:pose.x,y:pose.y,angle:pose.angle,stroke:Math.sin(time*.0038+index*1.7)}
-}
-
 type Point={x:number;y:number}
 type Limb={root:Point;joint:Point;tip:Point}
 
@@ -73,8 +66,8 @@ function drawLimb(ctx:CanvasRenderingContext2D,limb:Limb,width:number) {
   ctx.fillStyle='rgba(82,117,101,.7)';ctx.beginPath();ctx.arc(limb.joint.x,limb.joint.y,width*.65,0,Math.PI*2);ctx.fill()
 }
 
-export function drawShrimp(ctx:CanvasRenderingContext2D,sprite:HTMLCanvasElement,time:number,index:number,width:number,height:number,position?:{x:number;y:number;angle:number}) {
-  const pose=position??shrimpPose(time,index,width,height),rig=shrimpRig(time,index),scale=width<720?.62:width>1800?1.1:.9
+export function drawShrimp(ctx:CanvasRenderingContext2D,sprite:HTMLCanvasElement,time:number,index:number,width:number,height:number,position:{x:number;y:number;angle:number}) {
+  const pose=position,rig=shrimpRig(time,index),scale=width<720?.62:width>1800?1.1:.9
   ctx.save();ctx.translate(pose.x,pose.y);ctx.rotate(pose.angle);ctx.scale(scale,scale)
   ctx.globalAlpha=pose.x>width*.22&&pose.x<width*.78&&pose.y<height*.72?.3:.57
   ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='rgba(71,119,104,.82)'

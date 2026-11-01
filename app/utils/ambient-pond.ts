@@ -1,12 +1,12 @@
 import { createWaterField, createRipplePool } from './ambient-water'
 import { createLeafSprite, createLotusSprite, createLotusBudSprite, createPavilionSprite, createEgretSprite, drawEgret } from './ambient-pond-art'
 import {createShrimpSprite,drawShrimp} from './ambient-shrimp'
-import {pondSwimmers,type PondSwimmer} from './pond-swimmers'
+import {createPondSwimmers,type PondSwimmer} from './pond-swimmers'
 
 export function createPondScene(ctx: CanvasRenderingContext2D) {
   const leaves=[0,1,2].map(createLeafSprite),lotus=createLotusSprite(),bud=createLotusBudSprite(),pavilion=createPavilionSprite(),egret=createEgretSprite(),shrimp=createShrimpSprite()
   const texture = document.createElement('canvas'), textureContext = texture.getContext('2d')!
-  const rings = createRipplePool(48)
+  const rings = createRipplePool(48), swimmers = createPondSwimmers()
   let width = 1, height = 1, columns = 80, rows = 60, field = createWaterField(columns, rows)
   let pixels = textureContext.createImageData(columns, rows), lastInput = -Infinity, lastPoint: { x: number; y: number } | undefined, rainStep = -1
   let wash: CanvasGradient
@@ -110,7 +110,7 @@ export function createPondScene(ctx: CanvasRenderingContext2D) {
     ctx.save(); water(time)
     const scale = width < 720 ? .65 : width > 1800 ? 1.25 : 1
     ctx.save(); ctx.globalAlpha = .23; const pw = 165 * scale; ctx.drawImage(pavilion, width * .94 - pw * .5, height * .12, pw, pw * 2 / 3); ctx.restore()
-    for(const pose of pondSwimmers(time,width,height)){
+    for(const pose of swimmers.sample(time,width,height)){
       if(pose.kind==='koi')koi(time,pose.index,pose)
       else drawShrimp(ctx,shrimp,time,pose.index,width,height,pose)
     }
