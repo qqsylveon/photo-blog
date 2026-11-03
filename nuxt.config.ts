@@ -1,4 +1,5 @@
 import { homeEntryBootstrap } from './app/utils/home-entry'
+import { ambientPreferenceBootstrap } from './app/utils/ambient-preference'
 
 export default defineNuxtConfig({
   buildDir: process.env.JOURNAL_BUILD_DIR || '.nuxt',
@@ -15,7 +16,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'zh-CN' },
-      script: [{ key: 'home-entry-bootstrap', innerHTML: homeEntryBootstrap }, {
+      script: [{ key: 'home-entry-bootstrap', innerHTML: homeEntryBootstrap }, { key: 'ambient-preference-bootstrap', innerHTML: ambientPreferenceBootstrap }, {
         key: 'theme-bootstrap',
         innerHTML: `(function(){var p='system';try{var s=localStorage.getItem('photo-journal-theme');if(s==='dark'||s==='light')p=s}catch(e){}var d=p;if(p==='system'){try{d=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){d='light'}}document.documentElement.dataset.theme=d;document.documentElement.dataset.themePreference=p})()`
       }]

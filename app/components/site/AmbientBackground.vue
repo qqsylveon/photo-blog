@@ -3,7 +3,7 @@ import { createAmbientLoop } from '~/utils/ambient-loop'
 import { createAmbientRenderer } from '~/utils/ambient-renderer'
 import { AMBIENT_READY } from '~/utils/home-entry'
 const { enabled } = useAmbientPreference()
-const canvas = ref<HTMLCanvasElement | null>(null), running = ref(false), scene = ref<'night' | 'pond'>('pond')
+const canvas = ref<HTMLCanvasElement | null>(null), running = ref(false), presented = ref(false), scene = ref<'night' | 'pond'>('pond')
 let cleanup = () => {}
 onMounted(() => {
   const markReady = () => {
@@ -25,11 +25,12 @@ onMounted(() => {
         if (!canvas.value || !running.value) return
         renderer.resize()
         renderer.draw(performance.now())
+        presented.value = true
         markReady()
         loop.start()
       })
       else loop.start()
-    } else { loop.stop(); renderer.clear(); markReady() }
+    } else { loop.stop(); renderer.clear(); presented.value = false; markReady() }
   }
   const themeObserver = new MutationObserver(sync), overlayObserver = new MutationObserver(sync)
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
@@ -44,4 +45,13 @@ onMounted(() => {
 })
 onBeforeUnmount(() => cleanup())
 </script>
-<template><canvas ref="canvas" v-show="running" class="ambient-background" data-ambient-background :data-running="running" :data-scene="scene" aria-hidden="true"></canvas></template>
+<template>
+  <SiteAmbientPrimer :ready="presented && running" :enabled="enabled" />
+  <canvas ref="canvas" class="ambient-background" data-ambient-background :data-running="running" :data-presented="presented" :data-scene="scene" aria-hidden="true"></canvas>
+</template>
+<style scoped>
+.ambient-background { opacity:0; }
+.ambient-background[data-running="true"][data-presented="true"] { animation:ambient-arrive 900ms cubic-bezier(.22,.61,.36,1) both; }
+@keyframes ambient-arrive { from { opacity:0; } to { opacity:.85; } }
+@media(prefers-reduced-motion:reduce) { .ambient-background { animation:none !important; opacity:0; } }
+</style>

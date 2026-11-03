@@ -33,6 +33,58 @@ async function holdScripts(context:BrowserContext,source?:Page){
   return release
 }
 
+for(const theme of ['light','dark'])test('crossfades a themed first-paint atmosphere into the live scene in '+theme,async({page,context})=>{
+  await context.addInitScript(value=>{
+    localStorage.setItem('photo-journal-theme',value)
+    const frames:{primer:number;canvas:number;painted:boolean}[]=[]
+    ;(window as any).__ambientArrivalFrames=frames
+    const sample=()=>{
+      const primer=document.querySelector('[data-ambient-primer]'),canvas=document.querySelector('[data-ambient-background]')
+      if(primer&&canvas&&frames.length<3600)frames.push({primer:Number(getComputedStyle(primer).opacity),canvas:Number(getComputedStyle(canvas).opacity),painted:canvas.getAttribute('data-ambient-ready')==='true'})
+      requestAnimationFrame(sample)
+    }
+    requestAnimationFrame(sample)
+  },theme)
+  const release=await holdScripts(context)
+  try{
+    await page.goto('/',{waitUntil:'commit'})
+    const primer=page.locator('[data-ambient-primer]'),canvas=page.locator('[data-ambient-background]')
+    await expect(primer).toBeVisible({timeout:2000})
+    await expect(primer.locator(`[data-primer-scene="${theme}"]`)).toBeVisible()
+    await expect(primer).toHaveCSS('opacity','1')
+    await expect(canvas).toHaveCSS('opacity','0')
+    release()
+    await expect(canvas).toHaveAttribute('data-ambient-ready','true')
+    await expect(canvas).toHaveCSS('opacity','0.85')
+    await expect(primer).toHaveCSS('opacity','0')
+    await expect(canvas).toHaveCSS('animation-duration','0.9s')
+    await expect(canvas).toHaveCSS('animation-timing-function','cubic-bezier(0.22, 0.61, 0.36, 1)')
+    const frames=await page.evaluate(()=>(window as any).__ambientArrivalFrames as {primer:number;canvas:number;painted:boolean}[])
+    // CSS opacity runs in the compositor even when cold module work delays JS RAF callbacks.
+    expect(frames.some(frame=>frame.canvas>.03&&frame.canvas<.8),'background should fade, not pop into view; samples='+frames.length+' tail='+JSON.stringify(frames.slice(-6))).toBe(true)
+    expect(frames.some(frame=>frame.canvas>0&&!frame.painted),'never reveal an unpainted canvas').toBe(false)
+    expect(frames.some(frame=>frame.primer>.1&&frame.canvas>.1),'primer and live scene should overlap during the handoff').toBe(true)
+  }finally{release()}
+})
+
+test('respects disabled effects before client scripts load',async({page,context})=>{
+  await context.addInitScript(()=>localStorage.setItem('photo-journal-ambient','off'))
+  const release=await holdScripts(context)
+  try{
+    await page.goto('/',{waitUntil:'commit'})
+    const primer=page.locator('[data-ambient-primer]')
+    await primer.waitFor({state:'attached'})
+    await expect(page.getByRole('navigation',{name:'主导航'})).toBeVisible()
+    await expect(primer).toBeHidden()
+    release()
+    await expect(page.locator('html')).toHaveAttribute('data-app-ready','true')
+    await expect(primer).toBeHidden()
+    await page.getByRole('button',{name:'背景特效'}).click()
+    await expect(page.locator('[data-ambient-background]')).toHaveAttribute('data-running','true')
+    await expect(page.locator('[data-ambient-background]')).toHaveCSS('opacity','0.85')
+  }finally{release()}
+})
+
 test('previews the header concurrently without changing administrator state',async({page,context})=>{
   // Any accidental API-client auth write is refused by the server's origin policy.
   const api=page.request,original=api.post
@@ -115,6 +167,7 @@ test('keeps homepage text readable without JavaScript',async({browser,baseURL})=
   const context=await browser.newContext({baseURL,javaScriptEnabled:false})
   try{
     const page=await context.newPage();await page.goto('/')
+    await expect(page.locator('[data-ambient-primer]')).toBeVisible()
     await expect(page.locator('.home-glyph').first()).toBeVisible()
     await expect(page.getByRole('link',{name:/进入摄影集/})).toBeVisible()
   }finally{await context.close()}
@@ -129,6 +182,11 @@ test('honours reduced motion and does not wait for disabled background effects',
   await page.emulateMedia({reducedMotion:'reduce'});await page.reload()
   await expect(page.locator('[data-home-motion-root]')).toHaveAttribute('data-motion-mode','static')
   await expect(page.locator('.home-glyph').first()).toBeVisible()
+  // The saved opt-out still wins when reduced motion is requested.
+  await expect(page.locator('[data-ambient-primer]')).toBeHidden()
+  await page.getByRole('button',{name:'背景特效'}).click()
+  await expect(page.locator('[data-ambient-primer]')).toHaveCSS('opacity','1')
+  await expect(page.locator('.ambient-primer__ripples')).toHaveCSS('animation-name','none')
 })
 test('keeps content readable when the animation dependency fails',async({page,context})=>{
   let blocked=false
@@ -153,4 +211,5 @@ test('starts the text even when Canvas is unavailable',async({page,context})=>{
   await expect(page.locator('[data-home-motion-root]')).toHaveAttribute('data-motion-mode','animated')
   await expect(page.locator('.home-glyph').first()).toBeVisible()
   await expect(page.locator('[data-ambient-background]')).toHaveAttribute('data-running','false')
+  await expect(page.locator('[data-ambient-primer]')).toHaveCSS('opacity','1')
 })

@@ -1,6 +1,7 @@
 const noise = (seed: number) => { const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return value - Math.floor(value) }
+export const nightStars = Array.from({ length: 280 }, (_, i) => ({ x: noise(i + 1), y: noise(i + 501), radius: .55 + noise(i + 1001) ** 3 * 2.1, phase: noise(i + 1501) * Math.PI * 2, warm: i % 9 === 0 }))
 export function createNightScene(ctx: CanvasRenderingContext2D) {
-  const stars = Array.from({ length: 280 }, (_, i) => ({ x: noise(i + 1), y: noise(i + 501), radius: .55 + noise(i + 1001) ** 3 * 2.1, phase: noise(i + 1501) * Math.PI * 2, warm: i % 9 === 0 }))
+  const stars = nightStars
   return {
     draw(time: number, width: number, height: number) {
       ctx.save()
