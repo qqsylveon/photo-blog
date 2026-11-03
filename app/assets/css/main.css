@@ -706,3 +706,8 @@ h1 {
     display: none;
   }
 }
+
+/* Keep SSR copy from flashing before the coordinated client entrance. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-home-entry="pending"] .home-page :is([data-home-motion="gallery-mark"],[data-home-motion="gallery-character"],[data-home-motion="gallery-copy"]) { visibility:hidden; }
+}
