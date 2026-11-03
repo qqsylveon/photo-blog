@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { createAmbientLoop } from '~/utils/ambient-loop'
 import { createAmbientRenderer } from '~/utils/ambient-renderer'
+import { AMBIENT_READY } from '~/utils/home-entry'
 const { enabled } = useAmbientPreference()
-const canvas = ref<HTMLCanvasElement | null>(null), running = ref(false), scene = ref<'night' | 'pond'>('pond')
+const canvas = ref<HTMLCanvasElement | null>(null), running = ref(false), presented = ref(false), scene = ref<'night' | 'pond'>('pond')
 let cleanup = () => {}
 onMounted(() => {
-  if (!canvas.value?.getContext('2d')) return
+  const markReady = () => {
+    if (!canvas.value) return
+    canvas.value.dataset.ambientReady = 'true'
+    window.dispatchEvent(new Event(AMBIENT_READY))
+  }
+  if (!canvas.value?.getContext('2d')) { markReady(); return }
   const renderer = createAmbientRenderer(canvas.value), loop = createAmbientLoop(renderer.draw)
   const motion = matchMedia('(prefers-reduced-motion: reduce)')
   const sync = () => {
@@ -15,9 +21,16 @@ onMounted(() => {
     const blocked = Boolean(document.querySelector('.photo-lightbox, dialog[open]'))
     running.value = enabled.value && !document.hidden && !motion.matches && !blocked
     if (running.value) {
-      if (!wasRunning) nextTick(() => { if (canvas.value && running.value) renderer.resize() })
-      loop.start()
-    } else { loop.stop(); renderer.clear() }
+      if (!wasRunning) nextTick(() => {
+        if (!canvas.value || !running.value) return
+        renderer.resize()
+        renderer.draw(performance.now())
+        presented.value = true
+        markReady()
+        loop.start()
+      })
+      else loop.start()
+    } else { loop.stop(); renderer.clear(); presented.value = false; markReady() }
   }
   const themeObserver = new MutationObserver(sync), overlayObserver = new MutationObserver(sync)
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
@@ -32,4 +45,13 @@ onMounted(() => {
 })
 onBeforeUnmount(() => cleanup())
 </script>
-<template><canvas ref="canvas" v-show="running" class="ambient-background" data-ambient-background :data-running="running" :data-scene="scene" aria-hidden="true"></canvas></template>
+<template>
+  <SiteAmbientPrimer :ready="presented && running" :enabled="enabled" />
+  <canvas ref="canvas" class="ambient-background" data-ambient-background :data-running="running" :data-presented="presented" :data-scene="scene" aria-hidden="true"></canvas>
+</template>
+<style scoped>
+.ambient-background { opacity:0; }
+.ambient-background[data-running="true"][data-presented="true"] { animation:ambient-arrive 900ms cubic-bezier(.22,.61,.36,1) both; }
+@keyframes ambient-arrive { from { opacity:0; } to { opacity:.85; } }
+@media(prefers-reduced-motion:reduce) { .ambient-background { animation:none !important; opacity:0; } }
+</style>

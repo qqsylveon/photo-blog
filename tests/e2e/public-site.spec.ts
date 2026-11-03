@@ -14,7 +14,9 @@ test('browses the public journal across themes, gallery filters, photo links, an
   test.setTimeout(60_000)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /有些片刻没有故事/ })).toBeVisible()
-  await expect(page.locator('[data-home-motion-root]')).toHaveAttribute('data-motion-mode', 'animated')
+  // Slow cold starts may intentionally release readable text through the bounded fallback.
+  // The cold-popup tests verify animated first paint separately, with controlled script loading.
+  await expect(page.locator('[data-home-motion-root]')).toHaveAttribute('data-motion-mode', /^(animated|static)$/)
   await expect(page.locator('[data-featured-photo-id]')).toHaveCount(0)
   const curtain = page.locator('[data-route-curtain]')
   await expect(curtain).toHaveAttribute('data-state', 'idle')
@@ -127,11 +129,27 @@ test('opens the gallery from a closed iris below navigation while ambient motion
     const router = (document.querySelector('#__nuxt') as any).__vue_app__.config.globalProperties.$router
     let first = true
     router.beforeResolve(async (to: { path: string }) => {
-      if (to.path === '/gallery' && first) { first = false; await new Promise(resolve => setTimeout(resolve, 2700)) }
+      if (to.path === '/gallery' && first) {
+        first = false
+        await new Promise<void>(resolve => { (window as any).__releaseGalleryEntry = resolve })
+      }
     })
   })
   for (const theme of ['深色', '浅色']) {
     await page.getByRole('button', { name: theme }).click()
+    // Observe the transient phase inside the browser, before protocol calls or screenshots
+    // can outlast it on a busy machine. This still requires an actual revealing transition.
+    await page.evaluate(() => {
+      const scene = document.querySelector('.aperture-scene')!
+      scene.removeAttribute('data-observed-reveal')
+      const observer = new MutationObserver(() => {
+        if (scene.getAttribute('data-aperture-phase') === 'revealing') {
+          scene.setAttribute('data-observed-reveal', 'true')
+          observer.disconnect()
+        }
+      })
+      observer.observe(scene, { attributes: true, attributeFilter: ['data-aperture-phase'] })
+    })
     const navigation = page.getByRole('link', { name: /进入摄影集/ }).click()
     const iris = page.locator('.aperture-scene')
     await expect(iris).toBeVisible()
@@ -151,10 +169,11 @@ test('opens the gallery from a closed iris below navigation while ambient motion
       const shades = [.15, .45, .8].flatMap(x => [.15, .45, .8].map(y => painted.data[(Math.floor(y * painted.info.height) * painted.info.width + Math.floor(x * painted.info.width)) * painted.info.channels]!))
       expect(Math.max(...shades) - Math.min(...shades)).toBeGreaterThan(4)
       if (process.env.IRIS_VISUAL) await page.screenshot({ path: '.superpowers/iris-preview/live-closed.png' })
+      await page.evaluate(() => { (window as any).__releaseGalleryEntry() })
     }
     await navigation
     await expect(page).toHaveURL(/\/gallery$/)
-    await expect(iris).toHaveAttribute('data-aperture-phase', 'revealing')
+    await expect(iris).toHaveAttribute('data-observed-reveal', 'true')
     if (process.env.IRIS_VISUAL) {
       await iris.evaluate(node => node.getAnimations({ subtree: true }).forEach(animation => { animation.pause(); animation.currentTime = 380 }))
       await page.screenshot({ path: `.superpowers/iris-preview/live-${theme}-380.png` })
