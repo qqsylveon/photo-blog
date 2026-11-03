@@ -25,7 +25,7 @@ const defaultTiming: RouteCurtainTiming = {
   reducedMotion: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   snapshot: () => {
     const clone = document.querySelector('.site-shell')?.cloneNode(true) as HTMLElement | undefined
-    clone?.querySelectorAll('.route-curtain, canvas, script, iframe').forEach(element => element.remove())
+    clone?.querySelectorAll('.route-curtain, canvas, [data-ambient-primer], script, iframe').forEach(element => element.remove())
     clone?.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'))
     return { html: clone?.outerHTML ?? '', scrollY: window.scrollY }
   }

@@ -37,6 +37,7 @@ const stars = nightStars.slice(0, 64)
 .ambient-primer__night { display:none; }
 .ambient-primer__ripples { transform-origin:49% 46%; animation:primer-water-breath 4.8s ease-in-out infinite; }
 .ambient-primer[data-ready="true"] { animation:primer-dissolve 900ms cubic-bezier(.22,.61,.36,1) both; }
+.ambient-primer[data-ready="true"] .ambient-primer__ripples { animation-play-state:paused; }
 .ambient-primer[data-enabled="false"],:global(html[data-ambient-enabled="off"] .ambient-primer) { display:none; }
 :global(:root[data-theme="dark"] .ambient-primer) { background:none; }
 :global(:root[data-theme="dark"] .ambient-primer__pond) { display:none; }

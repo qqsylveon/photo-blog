@@ -57,6 +57,7 @@ for(const theme of ['light','dark'])test('crossfades a themed first-paint atmosp
     await expect(canvas).toHaveAttribute('data-ambient-ready','true')
     await expect(canvas).toHaveCSS('opacity','0.85')
     await expect(primer).toHaveCSS('opacity','0')
+    await expect(primer.locator('.ambient-primer__ripples')).toHaveCSS('animation-play-state','paused')
     await expect(canvas).toHaveCSS('animation-duration','0.9s')
     await expect(canvas).toHaveCSS('animation-timing-function','cubic-bezier(0.22, 0.61, 0.36, 1)')
     const frames=await page.evaluate(()=>(window as any).__ambientArrivalFrames as {primer:number;canvas:number;painted:boolean}[])
@@ -83,6 +84,34 @@ test('respects disabled effects before client scripts load',async({page,context}
     await expect(page.locator('[data-ambient-background]')).toHaveAttribute('data-running','true')
     await expect(page.locator('[data-ambient-background]')).toHaveCSS('opacity','0.85')
   }finally{release()}
+})
+
+for(const phase of ['settled','mid-arrival'])test('preserves the ambient blend when opening about from '+phase,async({page})=>{
+  await page.emulateMedia({reducedMotion:'no-preference'})
+  await page.goto('/')
+  await expect(page.locator('[data-ambient-background]')).toHaveCSS('opacity','0.85')
+  const before=await page.evaluate(phase=>{
+    const primer=document.querySelector<HTMLElement>('[data-ambient-primer]')!,canvas=document.querySelector<HTMLElement>('[data-ambient-background]')!
+    if(phase==='mid-arrival')for(const element of [primer,canvas])for(const animation of element.getAnimations()){animation.pause();animation.currentTime=350}
+    return {primer:Number(getComputedStyle(primer).opacity),canvas:Number(getComputedStyle(canvas).opacity)}
+  },phase)
+  // Keep the outgoing page in place while inspecting the actual snapshot composition.
+  await page.evaluate(()=>{
+    const router=(document.querySelector('#__nuxt') as any).__vue_app__.config.globalProperties.$router
+    router.beforeResolve((to:{path:string})=>to.path==='/about'?new Promise<void>(resolve=>{(window as any).__releaseAboutBlend=resolve}):undefined)
+  })
+  const navigation=page.getByRole('navigation',{name:'主导航'}).getByRole('link',{name:'关于我',exact:true}).click()
+  try{
+    await expect(page.locator('.cycling-source')).toBeVisible()
+    await expect.poll(async()=>Number(await page.locator('.cycling-ambient').evaluate(node=>getComputedStyle(node).opacity))).toBeCloseTo(before.canvas,2)
+    const mirroredPrimer=page.locator('.cycling-source .ambient-primer')
+    await expect(mirroredPrimer).toHaveCount(1)
+    expect(Number(await mirroredPrimer.evaluate(node=>getComputedStyle(node).opacity))).toBeCloseTo(before.primer,2)
+    await expect(page.locator('.cycling-source-content [data-ambient-primer]')).toHaveCount(0)
+  }finally{
+    await page.evaluate(()=>{(window as any).__releaseAboutBlend?.()})
+    await navigation
+  }
 })
 
 test('previews the header concurrently without changing administrator state',async({page,context})=>{
