@@ -1,12 +1,27 @@
 import {expect,test,type BrowserContext,type Page} from '@playwright/test'
+import {defaultSiteCopy} from '../../shared/notebook'
 
 async function adminSiteLink(page:Page){
-  const auth=await (await page.request.get('/api/admin/auth/state')).json()
-  const response=await page.request.post('/api/admin/auth/'+(auth.initialized?'login':'setup'),{data:{username:'home-entry-owner',password:'Only-for-isolated-home-entry-2026!'}})
-  expect(response.ok()).toBe(true)
-  await page.goto('/admin/settings')
-  await expect(page.getByRole('link',{name:'查看网站 ↗',exact:true})).toBeVisible()
+  // Authenticate only the source tab's UI. Never create accounts or sessions on
+  // the backend: the configured port may belong to an already-running server.
+  await page.route('**/api/admin/**',async route=>{
+    if(route.request().method()!=='GET'){await route.abort('blockedbyclient');return}
+    const path=new URL(route.request().url()).pathname
+    const body=path.endsWith('/auth/me')?{id:'preview-only',username:'preview-owner'}
+      :path.endsWith('/auth/state')?{initialized:true,canSetup:false}
+      :path.endsWith('/site-content')?defaultSiteCopy
+      :{heroMode:'manual',heroPhotoId:null,featuredPhotoIds:[],photos:[]}
+    await route.fulfill({json:body})
+  })
+  // Enter via an unauthenticated SSR page, then let the real client middleware
+  // consume the mocked session before mounting the actual admin layout/link.
+  await page.goto('/admin/login')
   await expect(page.locator('html')).toHaveAttribute('data-app-ready','true')
+  await page.evaluate(async()=>{
+    const app=(document.querySelector('#__nuxt') as any).__vue_app__
+    await app.config.globalProperties.$router.push('/admin/settings')
+  })
+  await expect(page.getByRole('link',{name:'查看网站 ↗',exact:true})).toBeVisible()
 }
 async function holdScripts(context:BrowserContext,source?:Page){
   let release!:()=>void
@@ -18,6 +33,20 @@ async function holdScripts(context:BrowserContext,source?:Page){
   return release
 }
 
+test('previews the header concurrently without changing administrator state',async({page,context})=>{
+  // Any accidental API-client auth write is refused by the server's origin policy.
+  const api=page.request,original=api.post
+  api.post=(url,options)=>original.call(api,url,{...options,headers:{...options?.headers,...(String(url).includes('/api/admin/auth/')?{'sec-fetch-site':'cross-site'}:{})}})
+  const before=await (await page.request.get('/api/admin/auth/state')).json()
+  const other=await context.newPage()
+  try{
+    await Promise.all([adminSiteLink(page),adminSiteLink(other)])
+    const after=await (await page.request.get('/api/admin/auth/state')).json()
+    expect(after.initialized).toBe(before.initialized)
+    await expect(page.getByRole('link',{name:'查看网站 ↗',exact:true})).toBeVisible()
+    await expect(other.getByRole('link',{name:'查看网站 ↗',exact:true})).toBeVisible()
+  }finally{api.post=original;await other.close()}
+})
 for(const theme of ['light','dark'])test('opens the admin website link without a static flash in '+theme,async({page,context})=>{
   await context.addInitScript(value=>localStorage.setItem('photo-journal-theme',value),theme)
   await adminSiteLink(page)
