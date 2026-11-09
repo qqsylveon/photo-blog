@@ -181,6 +181,30 @@ a:focus-visible {
 }
 .site-footer__registration { text-align: center; font-size: 0.78rem; overflow-wrap: anywhere; }
 .site-footer__registration a { text-decoration: none; }
+.site-footer--simple { grid-template-columns:1fr auto; }
+
+/* The home invitation and footer share one viewport; long custom copy can still grow. */
+.site-shell--home #main-content { display:flex; flex-direction:column; }
+.site-shell--home .home-page { display:flex; flex-direction:column; flex:1; }
+.site-shell--home .gallery-invitation { flex:1; min-height:0; padding:clamp(1.25rem,4vh,3rem) 1.5rem; border-bottom:0; }
+.site-shell--home .site-footer { padding-block:clamp(.75rem,2vh,1.25rem); }
+
+@media(max-width:720px) {
+  .site-shell--home .site-footer { grid-template-columns:1fr auto; gap:.3rem 1rem; padding: .65rem 1rem calc(5.5rem + env(safe-area-inset-bottom)); }
+  .site-shell--home .site-footer__registration { grid-column:1/-1; grid-row:1; }
+  .site-shell--home .site-footer > p:not(.site-footer__registration) { font-size:.68rem; }
+}
+@media(max-height:680px) {
+  .site-shell--home .gallery-invitation { padding-block:1rem; }
+  .site-shell--home .gallery-invitation__mark { font-size:clamp(2.2rem,9vh,4rem); margin:0; }
+  .site-shell--home .gallery-invitation h1 { font-size:clamp(1.15rem,min(4.4vw,6vh),2.5rem); margin:.4rem auto .6rem; }
+  .site-shell--home .gallery-invitation__line { margin-top:.8rem; }
+  .site-shell--home .text-link--large { margin-top:.8rem; }
+}
+@media(max-width:720px) and (max-height:560px) {
+  .site-shell--home .site-footer > p:not(.site-footer__registration) { display:none; }
+  .site-shell--home .site-footer { padding-top:0; padding-bottom:calc(4.75rem + env(safe-area-inset-bottom)); }
+}
 
 .eyebrow {
   color: var(--color-accent);

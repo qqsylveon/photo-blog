@@ -2,6 +2,7 @@ import { createWaterField, createRipplePool } from './ambient-water'
 import { createLeafSprite, createLotusSprite, createLotusBudSprite, createPavilionSprite, createEgretSprite, drawEgret } from './ambient-pond-art'
 import {createShrimpSprite,drawShrimp} from './ambient-shrimp'
 import {createPondSwimmers,type PondSwimmer} from './pond-swimmers'
+import {ambientReveal} from './ambient-arrival'
 
 export function createPondScene(ctx: CanvasRenderingContext2D) {
   const leaves=[0,1,2].map(createLeafSprite),lotus=createLotusSprite(),bud=createLotusBudSprite(),pavilion=createPavilionSprite(),egret=createEgretSprite(),shrimp=createShrimpSprite()
@@ -79,10 +80,10 @@ export function createPondScene(ctx: CanvasRenderingContext2D) {
       }
     }
   }
-  function koi(time: number, index: number,pose:PondSwimmer) {
+  function koi(time: number, index: number,pose:PondSwimmer, visibility = 1) {
     const {x,y,angle}=pose
     const scale = width < 720 ? .7 : width > 1800 ? 1.2 : 1
-    ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.scale(scale, scale); ctx.globalAlpha = .52
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.scale(scale, scale); ctx.globalAlpha = .52 * visibility
     const wag = Math.sin(time * .005 + index) * 7
     ctx.beginPath(); ctx.moveTo(-26, 0); ctx.bezierCurveTo(-38, -9 + wag, -46, -13 + wag, -49, -10 + wag); ctx.lineTo(-43, wag); ctx.lineTo(-49, 10 + wag); ctx.quadraticCurveTo(-37, 13 + wag, -26, 0)
     ctx.fillStyle = index % 2 ? '#9bbab3' : '#d5b08c'; ctx.fill()
@@ -96,9 +97,9 @@ export function createPondScene(ctx: CanvasRenderingContext2D) {
     for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(-18 + i * 5, -1, 4, -.8, .8); ctx.stroke() }
     ctx.beginPath(); ctx.arc(25, -4, 1.3, 0, Math.PI * 2); ctx.fillStyle = '#415f58'; ctx.fill(); ctx.restore()
   }
-  function dragonfly(time: number, index: number) {
+  function dragonfly(time: number, index: number, visibility = 1) {
     const t = time * .00035 + index * 3, x = width * (index ? .88 : .12) + Math.sin(t) * 26, y = height * (index ? .45 : .68) + Math.sin(t * 1.7) * 16
-    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * .8) * .3); ctx.globalAlpha = .5
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * .8) * .3); ctx.globalAlpha = .5 * visibility
     for (const side of [-1, 1]) for (const direction of [-1, 1]) {
       ctx.save(); ctx.rotate(side * (.45 + Math.sin(time * .045) * .12)); ctx.beginPath(); ctx.ellipse(side * 14, direction * 4, 15, 3.4, side * .3, 0, Math.PI * 2)
       ctx.fillStyle = 'rgba(240,251,240,.7)'; ctx.fill(); ctx.strokeStyle = 'rgba(104,149,151,.6)'; ctx.lineWidth = .6; ctx.stroke(); ctx.restore()
@@ -106,28 +107,30 @@ export function createPondScene(ctx: CanvasRenderingContext2D) {
     ctx.strokeStyle = '#789e9e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 22); ctx.stroke()
     ctx.fillStyle = '#587f81'; ctx.beginPath(); ctx.ellipse(0, -6, 3.5, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore()
   }
-  function draw(time: number) {
+  function draw(time: number, arrival = Infinity) {
     ctx.save(); water(time)
     const scale = width < 720 ? .65 : width > 1800 ? 1.25 : 1
-    ctx.save(); ctx.globalAlpha = .23; const pw = 165 * scale; ctx.drawImage(pavilion, width * .94 - pw * .5, height * .12, pw, pw * 2 / 3); ctx.restore()
+    ctx.save(); ctx.globalAlpha = .23 * ambientReveal(arrival, 200, 1000); const pw = 165 * scale; ctx.drawImage(pavilion, width * .94 - pw * .5, height * .12, pw, pw * 2 / 3); ctx.restore()
     for(const pose of swimmers.sample(time,width,height)){
-      if(pose.kind==='koi')koi(time,pose.index,pose)
-      else drawShrimp(ctx,shrimp,time,pose.index,width,height,pose)
+      const visibility = ambientReveal(arrival, 480 + pose.index * 70, 1100)
+      if(pose.kind==='koi')koi(time,pose.index,pose,visibility)
+      else drawShrimp(ctx,shrimp,time,pose.index,width,height,pose,visibility)
     }
     for (let i = 0; i < 8; i++) {
       const t = time * .00024 + i * 2.7, x = width * (i % 2 ? .945 : .055) + Math.sin(t) * 4 + Math.sin(t * 1.77) * 2
       const y = height * (.31 + Math.floor(i / 2) * .21) + Math.sin(t * .83) * 3 + Math.sin(t * 1.31) * 1.5
       const size = (i % 3 === 0 ? 118 : 90) * scale
-      ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * .71) * .035 + Math.sin(t * 1.43) * .018); ctx.globalAlpha = .48
+      const leafVisibility = ambientReveal(arrival, 120 + i * 45, 900), flowerVisibility = ambientReveal(arrival, 300 + i * 40, 900)
+      ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * .71) * .035 + Math.sin(t * 1.43) * .018); ctx.globalAlpha = .48 * leafVisibility
       ctx.drawImage(leaves[i%3]!, -size * .5, -size * .375, size, size * .75)
-      if (i === 1 || i === 4 || i === 7) { ctx.globalAlpha = .67; ctx.drawImage(lotus, -size * .32, -size * .87, size * .68, size * .68) }
-      if(i===2){ctx.globalAlpha=.64;ctx.drawImage(bud,-size*.2,-size*.82,size*.42,size*.67)}
+      if (i === 1 || i === 4 || i === 7) { ctx.globalAlpha = .67 * flowerVisibility; ctx.drawImage(lotus, -size * .32, -size * .87, size * .68, size * .68) }
+      if(i===2){ctx.globalAlpha=.64 * flowerVisibility;ctx.drawImage(bud,-size*.2,-size*.82,size*.42,size*.67)}
       ctx.restore()
     }
-    drawEgret(ctx,egret, width * .105, height * .83, scale, time)
-    dragonfly(time, 0); if (width > 720) dragonfly(time, 1)
+    drawEgret(ctx,egret, width * .105, height * .83, scale, time, ambientReveal(arrival, 440, 1100))
+    dragonfly(time, 0, ambientReveal(arrival,650,1100)); if (width > 720) dragonfly(time, 1, ambientReveal(arrival,770,1100))
     ripples(time)
-    ctx.strokeStyle = 'rgba(103,146,157,.19)'; ctx.lineWidth = .8
+    ctx.strokeStyle = `rgba(103,146,157,${.19 * ambientReveal(arrival,500,1200)})`; ctx.lineWidth = .8
     for (let i = 0; i < 42; i++) {
       const x = ((i * 117.37) % 997) / 997 * width, y = ((time * .10 + i * 71) % (height + 40)) - 20
       ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 4, y + 13); ctx.stroke()

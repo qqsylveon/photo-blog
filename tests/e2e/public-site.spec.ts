@@ -103,7 +103,7 @@ test('keeps the homepage to its quotation and larger gallery entrance', async ({
   await expect(page.locator('.home-featured, .home-about, .gallery-invitation__note')).toHaveCount(0)
   await expect(page.getByRole('link', { name: /进入摄影集/ })).toHaveCSS('font-size', '20px')
   await expect(page.locator('body')).not.toContainText(/\u676d\u5dde|hang[\s_-]*zhou/i)
-  await expect(page.locator('.site-footer__registration')).toHaveText('备案信息待更新')
+  await expect(page.locator('.site-footer__registration')).toHaveText('豫ICP备2026056885号')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
@@ -116,6 +116,26 @@ test('places the shared footer at the document bottom on home, gallery and about
     const geometry = await page.locator('.site-footer').evaluate(node => ({ bottom: node.getBoundingClientRect().bottom + scrollY, documentBottom: Math.max(document.documentElement.scrollHeight, innerHeight), position: getComputedStyle(node).position }))
     expect(Math.abs(geometry.bottom - geometry.documentBottom)).toBeLessThanOrEqual(2)
     expect(geometry.position).not.toBe('fixed')
+    await expect(page.locator('.site-footer__registration')).toHaveCount(path === '/' ? 1 : 0)
+  }
+})
+
+test('keeps the homepage registration inside one screen above navigation', async ({page}) => {
+  await page.emulateMedia({reducedMotion:'reduce'})
+  for(const size of [{width:2560,height:1271},{width:1440,height:600},{width:390,height:844},{width:667,height:375}]){
+    await page.setViewportSize(size)
+    await page.goto('/')
+    const link=page.getByRole('link',{name:'豫ICP备2026056885号',exact:true})
+    await expect(link).toHaveAttribute('href','http://beian.miit.gov.cn/')
+    const geometry=await link.evaluate(node=>{
+      const box=node.getBoundingClientRect(),nav=document.querySelector('.site-nav')!,navBox=nav.getBoundingClientRect()
+      return {top:box.top,bottom:box.bottom,viewport:innerHeight,height:document.documentElement.scrollHeight,covered:getComputedStyle(nav).position==='fixed'&&box.bottom>navBox.top,exposed:node.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2))}
+    })
+    expect(geometry.height).toBeLessThanOrEqual(geometry.viewport+1)
+    expect(geometry.top).toBeGreaterThanOrEqual(0)
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewport)
+    expect(geometry.covered).toBe(false)
+    expect(geometry.exposed).toBe(true)
   }
 })
 

@@ -44,7 +44,7 @@
 | 页面转场 | 摄影集光圈展开、关于我骑行翻页；导航与背景保持连续 |
 | 加载与异常 | 带斜向流光的骨架和图片占位、图片失败提示、错误重试、带矢量插画的空状态 |
 | 响应式与无障碍 | 桌面与移动布局、可见键盘焦点、语义化控件、系统减少动态效果支持 |
-| 页脚 | 统一页脚位置，预留可配置的备案号及查询链接 |
+| 页脚 | 首页一屏内显示备案号及查询链接；摄影集和关于我保留简洁页脚 |
 
 ### 后台
 
@@ -325,7 +325,7 @@ npm run admin:create -- admin
 | `JOURNAL_SEED` | `true` | 首次初始化时是否导入示例照片；只有字符串 `false` 关闭 |
 | `JOURNAL_REPOSITORY` | `sqlite` | 公开摄影内容的读取仓库；`fixture` 用于隔离界面开发 |
 | `JOURNAL_BUILD_DIR` | `.nuxt` | Nuxt 构建与缓存目录，可隔离开发/构建/测试 |
-| `NUXT_PUBLIC_ICP_NUMBER` | 空 | 页脚备案号；未设置时显示“备案信息待更新” |
+| `NUXT_PUBLIC_ICP_NUMBER` | 空 | 可覆盖首页备案号；未设置时使用“豫ICP备2026056885号” |
 | `NODE_ENV` | 由启动方式决定 | 生产模式禁用网页初始化、启用 Secure Cookie |
 | `HOST` / `PORT` | 生产 Nitro 的监听设置 | 直接运行构建产物时使用；开发监听见 Nuxt 配置与 CLI |
 
@@ -338,10 +338,10 @@ JOURNAL_DATA_DIR=data
 JOURNAL_MEDIA_DIR=storage
 JOURNAL_SEED=false
 JOURNAL_REPOSITORY=sqlite
-NUXT_PUBLIC_ICP_NUMBER=
+NUXT_PUBLIC_ICP_NUMBER=豫ICP备2026056885号
 ```
 
-备案完成后填入真实号码，重启服务，页脚显示号码并链接至备案查询网站。
+首页默认显示“豫ICP备2026056885号”，链接至 http://beian.miit.gov.cn/ 。修改环境变量后重启服务即可覆盖号码；摄影集和关于我不展示备案信息。
 
 **配置加载有区别：** Nuxt 开发/构建命令会加载 `.env`；直接运行 `.mjs` 脚本或 `.output` 生产入口时，需要由进程管理器注入环境变量，或使用 Node 的 `--env-file=.env`。
 

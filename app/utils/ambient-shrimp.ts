@@ -66,10 +66,10 @@ function drawLimb(ctx:CanvasRenderingContext2D,limb:Limb,width:number) {
   ctx.fillStyle='rgba(82,117,101,.7)';ctx.beginPath();ctx.arc(limb.joint.x,limb.joint.y,width*.65,0,Math.PI*2);ctx.fill()
 }
 
-export function drawShrimp(ctx:CanvasRenderingContext2D,sprite:HTMLCanvasElement,time:number,index:number,width:number,height:number,position:{x:number;y:number;angle:number}) {
+export function drawShrimp(ctx:CanvasRenderingContext2D,sprite:HTMLCanvasElement,time:number,index:number,width:number,height:number,position:{x:number;y:number;angle:number},visibility=1) {
   const pose=position,rig=shrimpRig(time,index),scale=width<720?.62:width>1800?1.1:.9
   ctx.save();ctx.translate(pose.x,pose.y);ctx.rotate(pose.angle);ctx.scale(scale,scale)
-  ctx.globalAlpha=pose.x>width*.22&&pose.x<width*.78&&pose.y<height*.72?.3:.57
+  ctx.globalAlpha=(pose.x>width*.22&&pose.x<width*.78&&pose.y<height*.72?.3:.57)*visibility
   ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='rgba(71,119,104,.82)'
   for(const leg of rig.legs){drawLimb(ctx,leg,.72);ctx.beginPath();ctx.moveTo(leg.tip.x,leg.tip.y);ctx.lineTo(leg.tip.x+2.3,leg.tip.y);ctx.stroke()}
   for(const claw of rig.claws){

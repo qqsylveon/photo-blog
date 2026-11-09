@@ -1,10 +1,13 @@
+import { ambientReveal } from './ambient-arrival'
+
 const noise = (seed: number) => { const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return value - Math.floor(value) }
 export const nightStars = Array.from({ length: 280 }, (_, i) => ({ x: noise(i + 1), y: noise(i + 501), radius: .55 + noise(i + 1001) ** 3 * 2.1, phase: noise(i + 1501) * Math.PI * 2, warm: i % 9 === 0 }))
 export function createNightScene(ctx: CanvasRenderingContext2D) {
   const stars = nightStars
   return {
-    draw(time: number, width: number, height: number) {
+    draw(time: number, width: number, height: number, arrival = Infinity) {
       ctx.save()
+      ctx.globalAlpha = ambientReveal(arrival, 80, 1300)
       const count = Math.min(280, Math.max(100, Math.round(width * height / 11500)))
       // Sparse atmospheric dust follows a loose diagonal band rather than an even dot pattern.
       for (let i = 0; i < 90; i++) {
@@ -14,6 +17,7 @@ export function createNightScene(ctx: CanvasRenderingContext2D) {
       }
       for (let i = 0; i < count; i++) {
         const star = stars[i]!, x = star.x * width, y = star.y * height
+        ctx.globalAlpha = i < 64 ? 1 : ambientReveal(arrival, 100 + noise(i + 4001) * 450, 1100)
         const glow = .4 + .5 * (1 + Math.sin(time * (.00035 + noise(i) * .0004) + star.phase)) / 2
         if (star.radius > 1.8) {
           const halo = ctx.createRadialGradient(x, y, 0, x, y, star.radius * 5)
@@ -26,6 +30,7 @@ export function createNightScene(ctx: CanvasRenderingContext2D) {
         ctx.beginPath(); ctx.arc(x, y, star.radius, 0, Math.PI * 2); ctx.fill()
       }
       const meteorCount = width < 720 ? 3 : 5
+      ctx.globalAlpha = ambientReveal(arrival, 700, 1200)
       for (let i = 0; i < meteorCount; i++) {
         const seconds = time / 1000 + i * 2.17, period = 10.7, cycle = Math.floor(seconds / period), elapsed = seconds % period
         const duration = 1.25 + noise(i + cycle * 41) * .65
