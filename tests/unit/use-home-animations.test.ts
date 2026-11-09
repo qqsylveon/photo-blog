@@ -37,7 +37,7 @@ const Harness = defineComponent({
   template: `
     <main ref="root">
       <section data-home-motion="gallery-invitation">
-        <p data-home-motion="gallery-mark" />
+        <span data-home-motion="gallery-character">字</span>
         <div data-home-motion="gallery-copy" />
       </section>
     </main>

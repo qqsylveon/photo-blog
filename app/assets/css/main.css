@@ -196,7 +196,6 @@ a:focus-visible {
 }
 @media(max-height:680px) {
   .site-shell--home .gallery-invitation { padding-block:1rem; }
-  .site-shell--home .gallery-invitation__mark { font-size:clamp(2.2rem,9vh,4rem); margin:0; }
   .site-shell--home .gallery-invitation h1 { font-size:clamp(1.15rem,min(4.4vw,6vh),2.5rem); margin:.4rem auto .6rem; }
   .site-shell--home .gallery-invitation__line { margin-top:.8rem; }
   .site-shell--home .text-link--large { margin-top:.8rem; }
@@ -250,16 +249,6 @@ h1 {
   padding: clamp(2.5rem,7vh,6rem) 1.5rem;
   border-bottom: 1px solid var(--color-line);
   text-align: center;
-}
-
-.gallery-invitation__mark {
-  position: relative;
-  justify-self: center;
-  margin: 0 0 .4rem;
-  color: color-mix(in srgb, var(--color-accent) 34%, transparent);
-  font-family: Georgia, serif;
-  font-size: clamp(5rem, 11vw, 10rem);
-  line-height: .65;
 }
 
 .gallery-invitation h1 {
@@ -733,5 +722,5 @@ h1 {
 
 /* Keep SSR copy from flashing before the coordinated client entrance. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-home-entry="pending"] .home-page :is([data-home-motion="gallery-mark"],[data-home-motion="gallery-character"],[data-home-motion="gallery-copy"]) { visibility:hidden; }
+  html[data-home-entry="pending"] .home-page :is([data-home-motion="gallery-character"],[data-home-motion="gallery-copy"]) { visibility:hidden; }
 }

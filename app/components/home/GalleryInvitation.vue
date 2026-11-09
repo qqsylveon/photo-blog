@@ -6,7 +6,6 @@ const lines = computed(() => props.quote.split(/\r?\n/).map(line => Array.from(l
 </script>
 <template>
   <section id="home-intro" class="gallery-invitation" aria-labelledby="gallery-invitation-title" data-home-motion="gallery-invitation">
-    <p class="gallery-invitation__mark" aria-hidden="true" data-home-motion="gallery-mark">“</p>
     <h1 id="gallery-invitation-title" :aria-label="quote">
       <span v-for="(line, row) in lines" :key="row" class="home-quote-line" aria-hidden="true"><span v-for="(character, index) in line" :key="index" class="home-glyph-mask"><span class="home-glyph" data-home-motion="gallery-character">{{ character }}</span></span><br v-if="!line.length"></span>
     </h1>
