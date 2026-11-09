@@ -36,7 +36,12 @@ onMounted(() => {
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
   overlayObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['open', 'data-state'] })
   const stopWatch = watch(enabled, sync)
-  const resize = () => { renderer.resize(); sync() }
+  const resize = () => {
+    renderer.resize()
+    // Resizing clears the bitmap; repaint before yielding to the scheduled loop.
+    if (running.value) renderer.draw(performance.now())
+    sync()
+  }
   const pointer = (event: PointerEvent) => { if (running.value && scene.value === 'pond') renderer.interact(event.clientX, event.clientY, performance.now(), event.type === 'pointerdown') }
   window.addEventListener('pointermove', pointer, { passive: true }); window.addEventListener('pointerdown', pointer, { passive: true })
   window.addEventListener('resize', resize); document.addEventListener('visibilitychange', sync); motion.addEventListener('change', sync)

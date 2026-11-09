@@ -44,7 +44,7 @@
 .about-profile__identity p { font-size:1rem; }
 @media(min-width:901px) {
   .site-shell--notebook { height:100dvh; min-height:0; overflow:clip; }
-  .site-shell--notebook #main-content { display:flex; min-height:0; }
+  .site-shell--notebook > .site-main { display:flex; min-height:0; }
   .site-shell--notebook .about-page--feed { display:flex; flex-direction:column; min-height:0; gap:0; padding:clamp(2rem,4vh,4rem) 0 1.5rem; }
   .site-shell--notebook .about-page__header { width:100%; flex-shrink:0; margin-bottom:clamp(1.5rem,3vh,3rem); }
   .site-shell--notebook .about-notebook-layout { flex:1; min-height:0; align-items:stretch; }
@@ -52,7 +52,7 @@
   .site-shell--notebook .moments-feed { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
   .site-shell--notebook .moments-feed__heading { flex-shrink:0; padding:0 14px 16px; }
   .site-shell--notebook .moments-feed__list { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; scrollbar-width:thin; padding:4px 14px 20px; }
-  .site-shell--notebook .site-footer { padding-block:1.2rem; }
+  .site-shell--notebook > .site-footer { padding-block:1.2rem; }
 }
 @media(max-width:900px) { .moments-feed__list { overflow-y:visible; } }
 @media(max-width:720px) { .site-header { background:var(--color-bg); } }

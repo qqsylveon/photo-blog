@@ -33,6 +33,61 @@ async function holdScripts(context:BrowserContext,source?:Page){
   return release
 }
 
+test('preserves home content positions in the outgoing about snapshot',async({page})=>{
+  await page.emulateMedia({reducedMotion:'no-preference'})
+  await page.goto('/')
+  await expect(page.locator('html')).toHaveAttribute('data-app-ready','true')
+  const selectors=['.gallery-invitation h1','.text-link--large','.site-footer']
+  const before=await page.evaluate(selectors=>{
+    // The geometry assertion concerns layout, independently of the idle breathing transform.
+    document.querySelector<HTMLElement>('.gallery-invitation h1')!.style.animation='none'
+    const router=(document.querySelector('#__nuxt') as any).__vue_app__.config.globalProperties.$router
+    router.beforeResolve((to:{path:string})=>to.path==='/about'?new Promise<void>(resolve=>{(window as any).__releaseSnapshotLayout=resolve}):undefined)
+    ;(window as any).__snapshotLayoutAfterSwap=[]
+    const shell=document.querySelector('.site-shell')!
+    const observer=new MutationObserver(()=>{
+      const copy=document.querySelector('.cycling-source-content')
+      if(shell.classList.contains('site-shell--notebook')&&copy){
+        ;(window as any).__snapshotLayoutAfterSwap=selectors.map(selector=>copy.querySelector(selector)!.getBoundingClientRect().top)
+        observer.disconnect()
+      }
+    })
+    observer.observe(shell,{attributes:true,attributeFilter:['class']})
+    return selectors.map(selector=>document.querySelector(selector)!.getBoundingClientRect().top)
+  },selectors)
+  const navigation=page.getByRole('navigation',{name:'主导航'}).getByRole('link',{name:'关于我',exact:true}).click()
+  try{
+    await expect(page.locator('.cycling-source-content')).toBeVisible()
+    await page.waitForFunction(()=>typeof (window as any).__releaseSnapshotLayout==='function')
+    const after=await page.locator('.cycling-source-content').evaluate((root,selectors)=>selectors.map(selector=>root.querySelector(selector)!.getBoundingClientRect().top),selectors)
+    after.forEach((top,index)=>expect(Math.abs(top-before[index]!),'snapshot layout must not jump: '+selectors[index]).toBeLessThanOrEqual(1))
+  }finally{await page.evaluate(()=>{(window as any).__releaseSnapshotLayout?.()});await navigation}
+  await expect.poll(()=>page.evaluate(()=>(window as any).__snapshotLayoutAfterSwap.length)).toBe(3)
+  const afterSwap=await page.evaluate(()=>(window as any).__snapshotLayoutAfterSwap as number[])
+  afterSwap.forEach((top,index)=>expect(Math.abs(top-before[index]!),'snapshot must stay stable after target layout swap').toBeLessThanOrEqual(1))
+})
+
+test('keeps the painted background visible during a resize before the next animation frame',async({page,context})=>{
+  await context.addInitScript(()=>localStorage.setItem('photo-journal-theme','dark'))
+  await page.emulateMedia({reducedMotion:'no-preference'})
+  await page.goto('/')
+  await expect(page.locator('[data-ambient-background]')).toHaveCSS('opacity','0.85')
+  const result=await page.evaluate(async()=>{
+    const native=requestAnimationFrame,captured:FrameRequestCallback[]=[]
+    window.requestAnimationFrame=callback=>{captured.push(callback);return 0}
+    try{
+      await new Promise<void>(resolve=>native(()=>native(()=>resolve())))
+      const canvas=document.querySelector<HTMLCanvasElement>('[data-ambient-background]')!,ctx=canvas.getContext('2d')!
+      const painted=()=>{const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;for(let i=3;i<pixels.length;i+=4)if(pixels[i]!>0)return true;return false}
+      const before=painted()
+      canvas.style.width='calc(100% - 1px)'
+      window.dispatchEvent(new Event('resize'))
+      return {before,after:painted()}
+    }finally{window.requestAnimationFrame=native;captured.forEach(callback=>native(callback))}
+  })
+  expect(result).toEqual({before:true,after:true})
+})
+
 for(const theme of ['light','dark'])test('crossfades a themed first-paint atmosphere into the live scene in '+theme,async({page,context})=>{
   await context.addInitScript(value=>{
     localStorage.setItem('photo-journal-theme',value)
