@@ -1,0 +1,21 @@
+[Unit]
+Description=Reconcile photo-blog production TLS certificate with Alibaba Cloud CDN
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/etc/letsencrypt/live/img.qqsylveon.love/fullchain.pem
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+StateDirectory=photo-blog-certbot
+StateDirectoryMode=0700
+ExecStart=/opt/photo-blog-certbot/venv/bin/python /opt/photo-blog-certbot/aliyun_certificate.py sync
+TimeoutStartSec=180
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

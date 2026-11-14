@@ -1,0 +1,12 @@
+[Unit]
+Description=Retry photo-blog CDN certificate deployment every hour
+
+[Timer]
+OnBootSec=5min
+OnCalendar=hourly
+RandomizedDelaySec=5min
+Persistent=true
+Unit=photo-blog-cdn-certificate.service
+
+[Install]
+WantedBy=timers.target

@@ -73,4 +73,5 @@ npm run dev
 ## 需要更多细节
 
 - [完整使用说明](docs/project-guide.md)：配置、部署、备份恢复、权限、接口与常见问题。
+- [图片 CDN 证书自动化](docs/certificate-automation.md)：Ubuntu + Snap Certbot、ECS 实例角色、DNS 自动验证与 CDN 证书同步。
 - [光圈性能记录](docs/performance/iris-2026-10-30.md)：实现与复测方法。
