@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { cyclingFrame, legPose } from '../../app/utils/cycling-geometry'
 
-it.each([[393,283],[2560,440]])('completes the slightly faster ride at2500ms and clears a%ipx viewport',(width,spriteWidth)=>{
-  expect(cyclingFrame(width,spriteWidth,2499).finished).toBe(false)
-  const frame=cyclingFrame(width,spriteWidth,2500)
+it.each([[393,283],[2560,440]])('completes the slightly faster ride at2200ms and clears a%ipx viewport',(width,spriteWidth)=>{
+  expect(cyclingFrame(width,spriteWidth,2199).finished).toBe(false)
+  const frame=cyclingFrame(width,spriteWidth,2200)
   expect(frame.finished).toBe(true)
   expect(frame.x+spriteWidth).toBeLessThan(0)
 })

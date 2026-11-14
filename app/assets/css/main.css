@@ -52,7 +52,7 @@ body {
   min-height: 100dvh;
 }
 
-#main-content { flex: 1; min-width: 0; }
+.site-main { flex: 1; min-width: 0; }
 .site-header, .site-footer { flex-shrink: 0; }
 
 .route-curtain {
@@ -181,6 +181,29 @@ a:focus-visible {
 }
 .site-footer__registration { text-align: center; font-size: 0.78rem; overflow-wrap: anywhere; }
 .site-footer__registration a { text-decoration: none; }
+.site-footer--simple { grid-template-columns:1fr auto; }
+
+/* The home invitation and footer share one viewport; long custom copy can still grow. */
+.site-shell--home > .site-main { display:flex; flex-direction:column; }
+.site-shell--home .home-page { display:flex; flex-direction:column; flex:1; }
+.site-shell--home .gallery-invitation { flex:1; min-height:0; padding:clamp(1.25rem,4vh,3rem) 1.5rem; border-bottom:0; }
+.site-shell--home .site-footer { padding-block:clamp(.75rem,2vh,1.25rem); }
+
+@media(max-width:720px) {
+  .site-shell--home .site-footer { grid-template-columns:1fr auto; gap:.3rem 1rem; padding: .65rem 1rem calc(5.5rem + env(safe-area-inset-bottom)); }
+  .site-shell--home .site-footer__registration { grid-column:1/-1; grid-row:1; }
+  .site-shell--home .site-footer > p:not(.site-footer__registration) { font-size:.68rem; }
+}
+@media(max-height:680px) {
+  .site-shell--home .gallery-invitation { padding-block:1rem; }
+  .site-shell--home .gallery-invitation h1 { font-size:clamp(1.15rem,min(4.4vw,6vh),2.5rem); margin:.4rem auto .6rem; }
+  .site-shell--home .gallery-invitation__line { margin-top:.8rem; }
+  .site-shell--home .text-link--large { margin-top:.8rem; }
+}
+@media(max-width:720px) and (max-height:560px) {
+  .site-shell--home .site-footer > p:not(.site-footer__registration) { display:none; }
+  .site-shell--home .site-footer { padding-top:0; padding-bottom:calc(4.75rem + env(safe-area-inset-bottom)); }
+}
 
 .eyebrow {
   color: var(--color-accent);
@@ -226,16 +249,6 @@ h1 {
   padding: clamp(2.5rem,7vh,6rem) 1.5rem;
   border-bottom: 1px solid var(--color-line);
   text-align: center;
-}
-
-.gallery-invitation__mark {
-  position: relative;
-  justify-self: center;
-  margin: 0 0 .4rem;
-  color: color-mix(in srgb, var(--color-accent) 34%, transparent);
-  font-family: Georgia, serif;
-  font-size: clamp(5rem, 11vw, 10rem);
-  line-height: .65;
 }
 
 .gallery-invitation h1 {
@@ -705,4 +718,9 @@ h1 {
   .route-curtain {
     display: none;
   }
+}
+
+/* Keep SSR copy from flashing before the coordinated client entrance. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-home-entry="pending"] .home-page :is([data-home-motion="gallery-character"],[data-home-motion="gallery-copy"]) { visibility:hidden; }
 }

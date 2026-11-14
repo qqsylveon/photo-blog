@@ -21,17 +21,17 @@ describe('homepage content components', () => {
     expect(wrapper.text()).not.toContain('再看时，仍能回到当时')
   })
 
-  it('reserves a registration slot without inventing an ICP number', () => {
+  it('uses the supplied homepage registration by default', () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ public: { icpNumber: '' } }))
     const wrapper = mount(SiteFooter)
-    expect(wrapper.text()).toContain('备案信息待更新')
-    expect(wrapper.find('a').exists()).toBe(false)
+    expect(wrapper.get('a').text()).toBe('豫ICP备2026056885号')
+    expect(wrapper.get('a').attributes('href')).toBe('http://beian.miit.gov.cn/')
   })
 
   it('uses the configured registration text and official lookup link', () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ public: { icpNumber: 'TEST-REGISTRATION' } }))
     const wrapper = mount(SiteFooter)
     expect(wrapper.get('a').text()).toBe('TEST-REGISTRATION')
-    expect(wrapper.get('a').attributes('href')).toBe('https://beian.miit.gov.cn/')
+    expect(wrapper.get('a').attributes('href')).toBe('http://beian.miit.gov.cn/')
   })
 })

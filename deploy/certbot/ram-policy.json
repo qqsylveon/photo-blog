@@ -1,0 +1,22 @@
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "alidns:DescribeDomainRecords",
+        "alidns:AddDomainRecord",
+        "alidns:DeleteDomainRecord"
+      ],
+      "Resource": "acs:alidns:*:YOUR_ALIYUN_ACCOUNT_ID:domain/qqsylveon.love"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cdn:DescribeDomainCertificateInfo",
+        "cdn:SetCdnDomainSSLCertificate"
+      ],
+      "Resource": "acs:cdn:*:YOUR_ALIYUN_ACCOUNT_ID:domain/img.qqsylveon.love"
+    }
+  ]
+}

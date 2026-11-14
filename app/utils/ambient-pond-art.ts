@@ -122,9 +122,9 @@ export function createEgretSprite(){
   })
 }
 
-export function drawEgret(ctx:CanvasRenderingContext2D,bird:HTMLCanvasElement,x:number,y:number,scale:number,time:number){
-  ctx.save();ctx.translate(x,y+70*scale);ctx.scale(scale,-scale*.34);ctx.globalAlpha=.08;ctx.drawImage(bird,-90,-240);ctx.restore()
-  ctx.save();ctx.translate(x,y+70*scale);ctx.rotate(Math.sin(time*.00032)*.004);ctx.scale(scale,scale);ctx.globalAlpha=.73;ctx.drawImage(bird,-90,-240);ctx.restore()
+export function drawEgret(ctx:CanvasRenderingContext2D,bird:HTMLCanvasElement,x:number,y:number,scale:number,time:number,visibility=1){
+  ctx.save();ctx.translate(x,y+70*scale);ctx.scale(scale,-scale*.34);ctx.globalAlpha=.08*visibility;ctx.drawImage(bird,-90,-240);ctx.restore()
+  ctx.save();ctx.translate(x,y+70*scale);ctx.rotate(Math.sin(time*.00032)*.004);ctx.scale(scale,scale);ctx.globalAlpha=.73*visibility;ctx.drawImage(bird,-90,-240);ctx.restore()
   ctx.save();ctx.strokeStyle='rgba(104,148,135,.2)';ctx.lineWidth=.7
   for(let i=0;i<2;i++){ctx.beginPath();ctx.ellipse(x+2*scale,y+71*scale,(26+i*12+Math.sin(time*.0006+i)*2)*scale,(4+i*3)*scale,0,0,Math.PI*2);ctx.stroke()}
   ctx.restore()

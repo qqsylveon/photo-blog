@@ -14,7 +14,9 @@ test('browses the public journal across themes, gallery filters, photo links, an
   test.setTimeout(60_000)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /有些片刻没有故事/ })).toBeVisible()
-  await expect(page.locator('[data-home-motion-root]')).toHaveAttribute('data-motion-mode', 'animated')
+  // Slow cold starts may intentionally release readable text through the bounded fallback.
+  // The cold-popup tests verify animated first paint separately, with controlled script loading.
+  await expect(page.locator('[data-home-motion-root]')).toHaveAttribute('data-motion-mode', /^(animated|static)$/)
   await expect(page.locator('[data-featured-photo-id]')).toHaveCount(0)
   const curtain = page.locator('[data-route-curtain]')
   await expect(curtain).toHaveAttribute('data-state', 'idle')
@@ -101,7 +103,7 @@ test('keeps the homepage to its quotation and larger gallery entrance', async ({
   await expect(page.locator('.home-featured, .home-about, .gallery-invitation__note')).toHaveCount(0)
   await expect(page.getByRole('link', { name: /进入摄影集/ })).toHaveCSS('font-size', '20px')
   await expect(page.locator('body')).not.toContainText(/\u676d\u5dde|hang[\s_-]*zhou/i)
-  await expect(page.locator('.site-footer__registration')).toHaveText('备案信息待更新')
+  await expect(page.locator('.site-footer__registration')).toHaveText('豫ICP备2026056885号')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
@@ -114,6 +116,26 @@ test('places the shared footer at the document bottom on home, gallery and about
     const geometry = await page.locator('.site-footer').evaluate(node => ({ bottom: node.getBoundingClientRect().bottom + scrollY, documentBottom: Math.max(document.documentElement.scrollHeight, innerHeight), position: getComputedStyle(node).position }))
     expect(Math.abs(geometry.bottom - geometry.documentBottom)).toBeLessThanOrEqual(2)
     expect(geometry.position).not.toBe('fixed')
+    await expect(page.locator('.site-footer__registration')).toHaveCount(path === '/' ? 1 : 0)
+  }
+})
+
+test('keeps the homepage registration inside one screen above navigation', async ({page}) => {
+  await page.emulateMedia({reducedMotion:'reduce'})
+  for(const size of [{width:2560,height:1271},{width:1440,height:600},{width:390,height:844},{width:667,height:375}]){
+    await page.setViewportSize(size)
+    await page.goto('/')
+    const link=page.getByRole('link',{name:'豫ICP备2026056885号',exact:true})
+    await expect(link).toHaveAttribute('href','http://beian.miit.gov.cn/')
+    const geometry=await link.evaluate(node=>{
+      const box=node.getBoundingClientRect(),nav=document.querySelector('.site-nav')!,navBox=nav.getBoundingClientRect()
+      return {top:box.top,bottom:box.bottom,viewport:innerHeight,height:document.documentElement.scrollHeight,covered:getComputedStyle(nav).position==='fixed'&&box.bottom>navBox.top,exposed:node.contains(document.elementFromPoint(box.x+box.width/2,box.y+box.height/2))}
+    })
+    expect(geometry.height).toBeLessThanOrEqual(geometry.viewport+1)
+    expect(geometry.top).toBeGreaterThanOrEqual(0)
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewport)
+    expect(geometry.covered).toBe(false)
+    expect(geometry.exposed).toBe(true)
   }
 })
 
@@ -127,11 +149,27 @@ test('opens the gallery from a closed iris below navigation while ambient motion
     const router = (document.querySelector('#__nuxt') as any).__vue_app__.config.globalProperties.$router
     let first = true
     router.beforeResolve(async (to: { path: string }) => {
-      if (to.path === '/gallery' && first) { first = false; await new Promise(resolve => setTimeout(resolve, 2700)) }
+      if (to.path === '/gallery' && first) {
+        first = false
+        await new Promise<void>(resolve => { (window as any).__releaseGalleryEntry = resolve })
+      }
     })
   })
   for (const theme of ['深色', '浅色']) {
     await page.getByRole('button', { name: theme }).click()
+    // Observe the transient phase inside the browser, before protocol calls or screenshots
+    // can outlast it on a busy machine. This still requires an actual revealing transition.
+    await page.evaluate(() => {
+      const scene = document.querySelector('.aperture-scene')!
+      scene.removeAttribute('data-observed-reveal')
+      const observer = new MutationObserver(() => {
+        if (scene.getAttribute('data-aperture-phase') === 'revealing') {
+          scene.setAttribute('data-observed-reveal', 'true')
+          observer.disconnect()
+        }
+      })
+      observer.observe(scene, { attributes: true, attributeFilter: ['data-aperture-phase'] })
+    })
     const navigation = page.getByRole('link', { name: /进入摄影集/ }).click()
     const iris = page.locator('.aperture-scene')
     await expect(iris).toBeVisible()
@@ -151,10 +189,11 @@ test('opens the gallery from a closed iris below navigation while ambient motion
       const shades = [.15, .45, .8].flatMap(x => [.15, .45, .8].map(y => painted.data[(Math.floor(y * painted.info.height) * painted.info.width + Math.floor(x * painted.info.width)) * painted.info.channels]!))
       expect(Math.max(...shades) - Math.min(...shades)).toBeGreaterThan(4)
       if (process.env.IRIS_VISUAL) await page.screenshot({ path: '.superpowers/iris-preview/live-closed.png' })
+      await page.evaluate(() => { (window as any).__releaseGalleryEntry() })
     }
     await navigation
     await expect(page).toHaveURL(/\/gallery$/)
-    await expect(iris).toHaveAttribute('data-aperture-phase', 'revealing')
+    await expect(iris).toHaveAttribute('data-observed-reveal', 'true')
     if (process.env.IRIS_VISUAL) {
       await iris.evaluate(node => node.getAnimations({ subtree: true }).forEach(animation => { animation.pause(); animation.currentTime = 380 }))
       await page.screenshot({ path: `.superpowers/iris-preview/live-${theme}-380.png` })
